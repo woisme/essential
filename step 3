@@ -1,0 +1,214 @@
+<?php
+	/*
+		step3.php		
+		
+		Calls "Check Availability" to see actual live availability
+		If there's a choice then that's displayed to the customer
+		Boxes for customer details displayed
+		
+	*/
+	$title = "Availability";
+	include_once("inc/top.php");
+	
+	// Include the config file
+	include('inc/config.php');
+	
+	$qs = "";
+	
+	if($marketplace_account_id == 0)
+	isset($_GET['booking_key']) ? $booking_key = $_GET['booking_key'] : exit();
+	isset($_GET['date']) ? $date = $_GET['date'] : exit();
+	
+	$qs .= "date=" . $date;
+	
+	isset($_GET['hdur']) ? $hdur = $_GET['hdur'] :  $hdur = null;
+	
+	isset($hdur) ? $qs .= "&hdur=" . $hdur : null;
+	
+	isset($_GET['rates']) ? $rate_string = $_GET['rates'] : exit();
+	isset($_GET['tour']) ? $tour = (int)$_GET['tour'] : exit();
+	isset($_GET['channel']) ? $channel = (int)$_GET['channel'] : exit();
+	$rates = explode(",", $rate_string);
+	
+	$total_people = 0;
+	
+	foreach ($rates as $rate) {
+		if(isset($_GET[$rate])) {
+			$rate_count = (int)$_GET[$rate];
+			
+			if($rate_count > 0) {
+				$qs .= "&" . $rate . "=" . $rate_count;
+				$total_people += $rate_count;
+			}
+		}
+	}
+	
+	$result = $tourcms->check_tour_availability($qs, $tour, $channel);
+	foreach ($result->available_components->component as $component) {
+$title = prettify_date($component->start_date) . " " . ((string)$component->end_date <> (string)$component->start_date ? " to " . prettify_date($component->end_date) : null ); 
+        }
+
+	isset($result->available_components->component) ? $num_components = count($result->available_components->component) : $num_components = 0;
+	
+?><center>
+<img style="max-width:100%" src=http://essentialworld.travel/wp-content/uploads/2012/01/Essential-Logo-new-transparent-V10-Shorter-Drop-Shadow5.png />
+
+<h1><?php print $result->tour->tour_name_long ?></h1>
+<h2><?php print $title; ?></h2>
+<?php 
+if($num_components>0) : ?>
+
+<form method="post" data-theme="b" action="step4.php" style="max-width:400px"  />
+<?php 
+if($marketplace_account_id == 0) :
+?>
+<input type="hidden" name="booking_key" value="<?php print $booking_key; ?>" />
+<?php 
+endif;
+?>
+<input id=component_key type="hidden" name="component_key" value="" />
+<input type="hidden" name="total_people" value="<?php print $total_people; ?>" />
+<input type="hidden" name="tour" value="<?php print $tour; ?>" />
+<input type="hidden" name="channel" value="<?php print $channel; ?>" />
+
+<div class="cycle-slideshow"
+    data-cycle-fx=scrollHorz
+    data-cycle-timeout=0
+    data-cycle-swipe=true
+>
+    <div class="cycle-pager"></div>
+    <div class="cycle-prev" ><</div>
+    <div class="cycle-next" >></div>
+    <div class="cycle-overlay"></div>
+    
+    <?php $temp_n = 0; 
+    $room = "";
+    
+	foreach ($result->available_components->component as $component) {
+	?>
+    
+    <img data-component-key="<?php print $component->component_key; ?>"
+     data-cycle-title="<?php foreach ($component->price_breakdown->price_row as $price_row) {print  $price_row . " ";$room = $price_row; } ?>" src="<?php
+     
+     /* Single, Double, Deluxe, Family, Suite */
+     // print "https://bookings.essentialworld.travel/image.php?file=
+     print "http://st5lte.cloudimage.io/s/resize/480/http://essentialworld.travel/wp-content/uploads/";
+     if (strpos("Single",$room)) {
+       print $_GET['Single'];
+     } else if (strpos($room,"Double")) {
+       print $_GET['Double'];
+     } else if (strpos($room,"Deluxe")) {
+       print $_GET['Deluxe'];
+     } else if (strpos($room,"Family")) {
+       print $_GET['Family'];
+     } else if (strpos($room,"Suite")) {
+       print $_GET['Suite'];
+     }
+     
+       ?>"
+     data-cycle-desc="<?php print $component->total_price_display; ?>" />
+       <?php } ?>
+    
+</div>
+			<fieldset data-role="fieldcontain" data-type="horizontal" > 
+				<label for="firstname" >First Name</label>
+				<input id="firstname" type="text" name="firstname[]" value="" placeholder="Joe" />
+			</fieldset>
+			<fieldset data-role="fieldcontain" data-type="horizontal" > 
+				<label for="surname">Last Name</label>
+				<input id="surname" type="text" name="surname[]" value="" placeholder="Bloggs" />
+			</fieldset>
+			<fieldset data-role="fieldcontain" data-type="horizontal" > 
+				<label for="email" >Email</label>
+				<input id="email" type="email" name="email" value="" placeholder="test@example.com" />
+			</fieldset>
+			<fieldset data-role="fieldcontain" data-type="horizontal"  > 
+				<label for="phone" >Phone</label>
+				<input id="phone" type="text" name="phone" value="" placeholder="07123456789" />
+			</fieldset>
+			<fieldset data-role="fieldcontain" data-type="horizontal" >
+				<label for="name" >Name On Card</label>
+				<input id="name" autocomplete="cc-name" name="name" placeholder="MR JOE BLOGGS" />
+			</fieldset>
+			<fieldset data-role="fieldcontain" data-type="horizontal" > 	
+				<label for="ccnumber" >Card Number</label>
+  				<input id="ccnumber" autocomplete="cc-number" name="ccnumber" placeholder="xxxx xxxx xxxx xxxx"  /> 
+  			</fieldset>
+  			<fieldset class="inline" data-role="fieldcontain" data-type="horizontal" > 
+  			<label>Card Expiry</label>
+  			  <fieldset data-role="fieldcontain" data-theme="b" data-type="horizontal" > <div style="width:110px !important;display:inline-block" > 
+  			 <select data-theme="b" name="ccexp_month" id="ccexp_month" title="select a month"> 
+  			<?php for ($i=1; $i<=12; $i++)  {
+  print "<option value='" . str_pad($i, 2, '0', STR_PAD_LEFT) .
+   "'> " . str_pad($i, 2, '0', STR_PAD_LEFT) . "</option>";
+  }
+  ?>
+         
+ </select></div><span class="big" >/</span><div style="width: 110px !important;display:inline-block" >
+ <select data-theme="b" name="ccexp_year" id="ExpYear" title="select a year"> 
+     <?php 
+     $y = (int) date('y');
+     for ($i=$y; $i<=($y + 10); $i++)
+  {
+  print "<option value='" . str_pad($i, 2, '0', STR_PAD_LEFT) .
+   "'> " . str_pad($i, 2, '0', STR_PAD_LEFT) . "</option>";
+  }
+  ?>
+</select> </div>
+			
+  				<input type="hidden" id="ccexp" autocomplete="cc-exp" name="ccexp" />
+  			</fieldset>
+</fieldset>
+			<fieldset class="small" data-role="fieldcontain" data-type="horizontal" >
+  				<label for="cvc">Card security code</label>
+  				<input  placeholder="123" id="cvc" name="cvc" maxlength="3" size="3" c />
+			
+			</fieldset>
+
+
+  			<fieldset data-role="fieldcontain" data-type="horizontal" style="max-width:227px" >
+    <input data-theme="b" type="submit" name="submit" value="Book" />
+
+			</fieldset>
+  
+</form>
+   
+<?php 
+else:
+	print "Sorry no availability, please go back and try a different date / number of passengers"; //TODO Send user back
+endif; ?>
+	</center>
+	<script src="/tourcms/tourcms-php-1.7/examples/master/inc/book.js"></script>
+
+	<script>
+	$( "form" ).validate({
+	  rules: {
+	    ccnumber: {
+	      required: true,
+	      creditcard: true
+	    },
+	    firstname: "required",
+	    surname:"required",
+	    name:"required",
+	    email: {
+             required: true,
+             email: true
+            },
+	    phone: {
+		required: true,
+		number: true
+	    },
+	    cvc: {
+		required: true,
+		number: true
+	    }
+	  }
+	});
+$("#surname").focusout(function() {
+  $("#name").val($("#firstname").val().toUpperCase() + " " + $("#surname").val().toUpperCase());
+});
+</script>
+	
+<?php 
+	include_once("inc/bottom.php");
+ ?>
